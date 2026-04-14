@@ -1,0 +1,18 @@
+{
+  "terminal.integrated.defaultProfile.windows": "IABilling PowerShell (npm works)",
+  "terminal.integrated.profiles.windows": {
+    "IABilling PowerShell (npm works)": {
+      "source": "PowerShell",
+      "args": ["-NoExit", "-ExecutionPolicy", "Bypass"],
+      "icon": "terminal-powershell"
+    },
+    "Command Prompt": {
+      "path": [
+        "${env:windir}\\Sysnative\\cmd.exe",
+        "${env:windir}\\System32\\cmd.exe"
+      ],
+      "args": [],
+      "icon": "terminal-cmd"
+    }
+  }
+}

@@ -1,0 +1,426 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  PHARMACIST
+  ACCOUNTANT
+}
+
+enum PaymentMode {
+  CASH
+  UPI
+  CARD
+  CREDIT
+}
+
+enum PaymentStatus {
+  PAID
+  PARTIAL
+  PENDING
+}
+
+enum StockAdjustmentType {
+  ADDITION
+  SUBTRACTION
+  CORRECTION
+  DAMAGE
+  RETURN
+}
+
+enum PurchaseStatus {
+  PENDING
+  RECEIVED
+  PARTIAL
+}
+
+enum PurchaseOrderStatus {
+  OPEN
+  PARTIAL
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id          String    @id @default(cuid())
+  name        String    @db.VarChar(255)
+  email       String    @unique @db.VarChar(191)
+  password    String    @db.VarChar(255)
+  role        Role      @default(PHARMACIST)
+  phone       String?   @db.VarChar(20)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  bills             Bill[]
+  purchases         Purchase[]
+  purchaseOrders    PurchaseOrder[]
+  goodsReceipts     GoodsReceipt[]
+  stockAdjustments  StockAdjustment[]
+  auditLogs         AuditLog[]
+}
+
+model Medicine {
+  id              String    @id @default(cuid())
+  sku             String?   @unique @db.VarChar(64)
+  name            String    @db.VarChar(255)
+  brandName       String?   @db.VarChar(255)
+  genericName     String?   @db.VarChar(255)
+  category        String    @db.VarChar(100)
+  manufacturer    String?   @db.VarChar(255)
+  batchNumber     String    @db.VarChar(100)
+  barcode         String?   @unique @db.VarChar(100)
+  hsnCode         String?   @db.VarChar(20)
+  schedule        String?   @db.VarChar(50)
+  unit            String    @default("strip") @db.VarChar(50)
+
+  // Strength (e.g. 500 + mg, or free-text label for syrups)
+  strengthMg      Float?
+  strengthUnit    String?   @default("mg") @db.VarChar(10)
+  strengthLabel   String?   @db.VarChar(80)
+  composition     String?   @db.VarChar(500)
+  packSize        String?   @db.VarChar(100)
+  dosageForm      String?   @db.VarChar(50)
+
+  purchasePrice   Float
+  sellingPrice    Float
+  mrp             Float
+  defaultDiscountPct Float  @default(0)
+  taxInclusive    Boolean   @default(false)
+
+  quantity        Int       @default(0)
+  minStockLevel   Int       @default(10)
+
+  expiryDate      DateTime
+  manufactureDate DateTime?
+
+  gstRate         Float     @default(12)
+  cgstRate        Float     @default(6)
+  sgstRate        Float     @default(6)
+
+  requiresPrescription Boolean @default(false)
+  notes           String?   @db.Text
+  substituteMedicineIds Json?
+
+  supplierId      String?
+  supplier        Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  lastPurchaseDate DateTime?
+
+  isActive        Boolean   @default(true)
+  location        String?   @db.VarChar(100)
+  description     String?   @db.Text
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  billItems           BillItem[]
+  purchaseItems       PurchaseItem[]
+  purchaseOrderItems  PurchaseOrderItem[]
+  stockAdjustments    StockAdjustment[]
+}
+
+model Supplier {
+  id            String    @id @default(cuid())
+  name          String    @db.VarChar(255)
+  contactPerson String?   @db.VarChar(255)
+  phone         String    @db.VarChar(20)
+  email         String?   @db.VarChar(255)
+  address       String?   @db.Text
+  city          String?   @db.VarChar(100)
+  state         String?   @db.VarChar(100)
+  pincode       String?   @db.VarChar(10)
+  gstin         String?   @db.VarChar(20)
+  drugLicense   String?   @db.VarChar(50)
+
+  openingBalance Float     @default(0)
+  currentBalance Float     @default(0)
+
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  purchases      Purchase[]
+  purchaseOrders PurchaseOrder[]
+  medicines      Medicine[]
+}
+
+model Customer {
+  id            String    @id @default(cuid())
+  name          String    @db.VarChar(255)
+  phone         String?   @unique @db.VarChar(20)
+  email         String?   @db.VarChar(255)
+  address       String?   @db.Text
+  city          String?   @db.VarChar(100)
+  state         String?   @db.VarChar(100)
+  pincode       String?   @db.VarChar(10)
+
+  creditLimit   Float     @default(0)
+  currentCredit Float     @default(0)
+
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  bills         Bill[]
+}
+
+model Bill {
+  id              String        @id @default(cuid())
+  billNumber      String        @unique @db.VarChar(50)
+
+  customerId      String?
+  customer        Customer?     @relation(fields: [customerId], references: [id])
+  customerName    String?       @db.VarChar(255)
+  customerPhone   String?       @db.VarChar(20)
+  customerAddress String?       @db.Text
+  customerCity    String?       @db.VarChar(100)
+  customerPincode String?     @db.VarChar(10)
+  customerState   String?      @db.VarChar(100)
+
+  patientName     String?      @db.VarChar(255)
+  patientAge      String?      @db.VarChar(30)
+  referredByDoctor String?     @db.VarChar(255)
+  doctorRegNo     String?      @db.VarChar(80)
+  rxReference     String?      @db.VarChar(120)
+
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+
+  subtotal        Float
+  discountType    String?       @db.VarChar(20)
+  discountValue   Float         @default(0)
+  discountAmount  Float         @default(0)
+  taxableAmount   Float
+  cgstAmount      Float         @default(0)
+  sgstAmount      Float         @default(0)
+  igstAmount      Float         @default(0)
+  totalTax        Float         @default(0)
+  totalAmount     Float
+  roundOff        Float         @default(0)
+  netAmount       Float
+
+  paymentMode     PaymentMode   @default(CASH)
+  paymentStatus   PaymentStatus @default(PAID)
+  amountPaid      Float
+  amountDue       Float         @default(0)
+
+  notes           String?       @db.Text
+  prescriptionUrl String?       @db.VarChar(500)
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  items           BillItem[]
+}
+
+model BillItem {
+  id            String    @id @default(cuid())
+  billId        String
+  bill          Bill      @relation(fields: [billId], references: [id], onDelete: Cascade)
+
+  medicineId    String
+  medicine      Medicine  @relation(fields: [medicineId], references: [id])
+
+  medicineName  String    @db.VarChar(255)
+  itemSku       String?   @db.VarChar(64)
+  itemHsn       String?   @db.VarChar(20)
+  itemStrength  String?   @db.VarChar(80)
+  itemPack      String?   @db.VarChar(100)
+  itemGeneric   String?   @db.VarChar(255)
+  itemRackLocation String? @db.VarChar(100)
+  itemSchedule  String?   @db.VarChar(50)
+  batchNumber   String    @db.VarChar(100)
+  expiryDate    DateTime
+
+  quantity      Int
+  unit          String    @db.VarChar(50)
+  mrp           Float
+  sellingPrice  Float
+  discount      Float     @default(0)
+
+  cgstRate      Float     @default(0)
+  sgstRate      Float     @default(0)
+  cgstAmount    Float     @default(0)
+  sgstAmount    Float     @default(0)
+
+  amount        Float
+}
+
+model Purchase {
+  id              String          @id @default(cuid())
+  purchaseNumber  String          @unique @db.VarChar(50)
+
+  supplierId      String
+  supplier        Supplier        @relation(fields: [supplierId], references: [id])
+
+  userId          String
+  user            User            @relation(fields: [userId], references: [id])
+
+  goodsReceiptId  String?         @unique
+  goodsReceipt    GoodsReceipt?   @relation("GrnBill", fields: [goodsReceiptId], references: [id], onDelete: SetNull)
+
+  invoiceNumber   String?         @db.VarChar(100)
+  invoiceDate     DateTime?
+
+  subtotal        Float
+  discountAmount  Float           @default(0)
+  taxableAmount   Float
+  cgstAmount      Float           @default(0)
+  sgstAmount      Float           @default(0)
+  totalTax        Float           @default(0)
+  totalAmount     Float
+
+  amountPaid      Float           @default(0)
+  amountDue       Float           @default(0)
+
+  status          PurchaseStatus  @default(RECEIVED)
+  notes           String?         @db.Text
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  items           PurchaseItem[]
+}
+
+model PurchaseOrder {
+  id           String                @id @default(cuid())
+  poNumber     String                @unique @db.VarChar(50)
+  supplierId   String
+  supplier     Supplier              @relation(fields: [supplierId], references: [id])
+  userId       String
+  user         User                  @relation(fields: [userId], references: [id])
+  status       PurchaseOrderStatus   @default(OPEN)
+  orderDate    DateTime              @default(now())
+  expectedDate DateTime?
+  notes        String?               @db.Text
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  items          PurchaseOrderItem[]
+  goodsReceipts  GoodsReceipt[]
+}
+
+model PurchaseOrderItem {
+  id                      String          @id @default(cuid())
+  purchaseOrderId         String
+  purchaseOrder           PurchaseOrder   @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  medicineId              String
+  medicine                Medicine        @relation(fields: [medicineId], references: [id])
+  qtyOrdered              Int
+  qtyReceived             Int             @default(0)
+  expectedPurchasePrice   Float?
+  notes                   String?         @db.VarChar(500)
+  goodsReceiptItems       GoodsReceiptItem[]
+
+  @@index([purchaseOrderId])
+}
+
+model GoodsReceipt {
+  id                String          @id @default(cuid())
+  grnNumber         String          @unique @db.VarChar(50)
+  purchaseOrderId   String
+  purchaseOrder     PurchaseOrder   @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict)
+  userId            String
+  user              User            @relation(fields: [userId], references: [id])
+  notes             String?         @db.Text
+  createdAt         DateTime        @default(now())
+
+  items             GoodsReceiptItem[]
+  purchaseBill      Purchase?         @relation("GrnBill")
+
+  @@index([purchaseOrderId])
+}
+
+model GoodsReceiptItem {
+  id                    String            @id @default(cuid())
+  goodsReceiptId        String
+  goodsReceipt          GoodsReceipt      @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
+  purchaseOrderItemId   String
+  purchaseOrderItem     PurchaseOrderItem @relation(fields: [purchaseOrderItemId], references: [id], onDelete: Restrict)
+  medicineId            String
+  medicineName          String            @db.VarChar(255)
+  qtyReceived           Int
+  freeQuantity          Int               @default(0)
+  batchNumber           String?           @db.VarChar(100)
+  expiryDate            DateTime?
+  purchasePrice         Float
+  mrp                   Float
+  sellingPrice          Float
+  cgstRate              Float             @default(0)
+  sgstRate              Float             @default(0)
+  cgstAmount            Float             @default(0)
+  sgstAmount            Float             @default(0)
+  amount                Float
+
+  @@index([goodsReceiptId])
+  @@index([purchaseOrderItemId])
+}
+
+model PurchaseItem {
+  id            String    @id @default(cuid())
+  purchaseId    String
+  purchase      Purchase  @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  medicineId    String
+  medicine      Medicine  @relation(fields: [medicineId], references: [id])
+
+  medicineName  String    @db.VarChar(255)
+  batchNumber   String?   @db.VarChar(100)
+  expiryDate    DateTime?
+
+  quantity      Int
+  freeQuantity  Int       @default(0)
+  purchasePrice Float
+  mrp           Float
+  sellingPrice  Float
+
+  cgstRate      Float     @default(0)
+  sgstRate      Float     @default(0)
+  cgstAmount    Float     @default(0)
+  sgstAmount    Float     @default(0)
+
+  amount        Float
+}
+
+model StockAdjustment {
+  id          String                @id @default(cuid())
+  medicineId  String
+  medicine    Medicine              @relation(fields: [medicineId], references: [id])
+
+  userId      String
+  user        User                  @relation(fields: [userId], references: [id])
+
+  type        StockAdjustmentType
+  quantity    Int
+  reason      String?               @db.VarChar(500)
+
+  createdAt   DateTime              @default(now())
+}
+
+model AuditLog {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+
+  action      String    @db.VarChar(50)
+  entity      String    @db.VarChar(50)
+  entityId    String?   @db.VarChar(100)
+  details     Json?
+  ipAddress   String?   @db.VarChar(50)
+
+  createdAt   DateTime  @default(now())
+}
+
+model Settings {
+  id          String    @id @default(cuid())
+  key         String    @unique @db.VarChar(100)
+  value       String    @db.Text
+  description String?   @db.VarChar(500)
+  updatedAt   DateTime  @updatedAt
+}
