@@ -64,6 +64,9 @@ interface CartItem {
   rackLocation?: string | null;
 }
 
+/** Payload for addItem — originals are set from cgst/sgst rates inside the store */
+type CartItemInput = Omit<CartItem, 'originalCgstRate' | 'originalSgstRate'>;
+
 interface CartState {
   items: CartItem[];
   customerName: string;
@@ -82,7 +85,7 @@ interface CartState {
   discountType: string;
   discountValue: number;
   notes: string;
-  addItem: (item: CartItem) => void;
+  addItem: (item: CartItemInput) => void;
   updateItem: (medicineId: string, updates: Partial<CartItem>) => void;
   removeItem: (medicineId: string) => void;
   clearCart: () => void;
