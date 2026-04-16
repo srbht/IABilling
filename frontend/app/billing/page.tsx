@@ -423,6 +423,23 @@ export default function BillingPage() {
                           <td className="px-2 py-2.5 text-right align-top">
                             <div className="text-xs text-gray-600 dark:text-gray-400 tabular-nums">{formatCurrency(item.mrp)}</div>
                           </td>
+                          {/* Rate (read-only) */}
+                          <td className="px-2 py-2.5 text-right align-top">
+                            <div className="text-sm font-semibold tabular-nums text-gray-900 dark:text-white">
+                              {formatCurrency(item.sellingPrice)}
+                            </div>
+                          </td>
+                          {/* Disc% */}
+                          <td className="px-2 py-2.5 align-top">
+                            <input
+                              type="number"
+                              value={item.discount}
+                              min={0}
+                              max={100}
+                              onChange={(e) => updateItem(item.medicineId, { discount: parseFloat(e.target.value) || 0 })}
+                              className="w-full max-w-[3rem] mx-auto block text-center border border-stone-200 dark:border-gray-600 rounded-lg py-1 text-sm bg-white dark:bg-gray-900"
+                            />
+                          </td>
                           {/* Qty */}
                           <td className="px-2 py-2.5 align-top">
                             <div className="flex items-center justify-center gap-1">
@@ -457,23 +474,6 @@ export default function BillingPage() {
                                 <Plus className="w-3.5 h-3.5" />
                               </button>
                             </div>
-                          </td>
-                          {/* Rate (read-only) */}
-                          <td className="px-2 py-2.5 text-right align-top">
-                            <div className="text-sm font-semibold tabular-nums text-gray-900 dark:text-white">
-                              {formatCurrency(item.sellingPrice)}
-                            </div>
-                          </td>
-                          {/* Disc% */}
-                          <td className="px-2 py-2.5 align-top">
-                            <input
-                              type="number"
-                              value={item.discount}
-                              min={0}
-                              max={100}
-                              onChange={(e) => updateItem(item.medicineId, { discount: parseFloat(e.target.value) || 0 })}
-                              className="w-full max-w-[3rem] mx-auto block text-center border border-stone-200 dark:border-gray-600 rounded-lg py-1 text-sm bg-white dark:bg-gray-900"
-                            />
                           </td>
                           {/* Amount */}
                           <td className="px-2 py-2.5 text-right font-bold tabular-nums text-gray-900 dark:text-white align-top">
